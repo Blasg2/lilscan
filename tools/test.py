@@ -28,6 +28,8 @@ with sync_playwright() as p:
     page = browser.new_page(viewport={"width": 480, "height": 800})
     errors = []
     page.on("pageerror", lambda e: errors.append(str(e)))
+    # The page must work from its own files only.
+    page.route(lambda url: not url.startswith("http://127.0.0.1"), lambda route: route.abort())
     page.add_init_script("document.addEventListener('targetFound', () => window.found = true)")
     page.goto(f"http://127.0.0.1:{server.server_port}/index.html")
     page.wait_for_function("window.found === true", timeout=60000)
