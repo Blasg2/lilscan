@@ -7,7 +7,8 @@
 <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 <style>
-  html, body { margin: 0; height: 100%; overflow: hidden; background: #000; }
+  /* No background on body: MindAR puts the camera feed behind the page (z-index -2), and a body background covers it. */
+  html, body { margin: 0; height: 100%; overflow: hidden; }
 </style>
 </head>
 <body>

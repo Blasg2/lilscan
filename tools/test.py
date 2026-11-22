@@ -1,10 +1,11 @@
 # /// script
-# dependencies = ["playwright"]
+# dependencies = ["playwright", "pillow"]
 # ///
 """Self-check: feeds Chromium a fake camera showing cover.png and checks the target is found and the video plays.
 uv run tools/test.py [screenshot.png]"""
-import functools, http.server, os, subprocess, sys, tempfile, threading
+import functools, http.server, io, os, subprocess, sys, tempfile, threading
 from pathlib import Path
+from PIL import Image
 from playwright.sync_api import sync_playwright
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -31,10 +32,12 @@ with sync_playwright() as p:
     page.goto(f"http://127.0.0.1:{server.server_port}/index.html")
     page.wait_for_function("window.found === true", timeout=60000)
     page.wait_for_function("document.getElementById('vid').currentTime > 0.5", timeout=15000)
-    if shot:
-        page.screenshot(path=shot)
+    png = page.screenshot(path=shot)
     browser.close()
 server.shutdown()
 
 assert not errors, f"page errors: {errors}"
-print("OK: target found, video playing")
+# The top edge of the screen shows the fake camera's grey padding, unless something covers the camera.
+r, g, b = Image.open(io.BytesIO(png)).convert("RGB").getpixel((240, 10))
+assert min(r, g, b) > 80, f"camera feed not visible (top pixel is {r},{g},{b})"
+print("OK: camera visible, target found, video playing")
