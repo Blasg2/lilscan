@@ -10,17 +10,23 @@
 <style>
   /* No background on body: MindAR puts the camera feed behind the page (z-index -2), and a body background covers it. */
   html, body { margin: 0; height: 100%; overflow: hidden; }
+  /* iPhone Safari draws a hidden (display: none) video as black in 3D, so keep it on the page, tiny, behind the camera. */
+  #vid { position: fixed; top: 0; left: 0; width: 2px; height: 2px; z-index: -3; }
+  #tap {
+    position: fixed; left: 0; right: 0; bottom: 10%; z-index: 10; padding: 0 16px;
+    text-align: center; color: #fff; font: 600 18px/1.3 sans-serif; text-shadow: 0 1px 4px #000;
+  }
 </style>
 </head>
 <body>
+<!-- muted + playsinline: iPhones only autoplay inline video that is silent (this one has no audio) -->
+<video id="vid" src="video.mp4" muted loop playsinline webkit-playsinline preload="auto" crossorigin="anonymous"></video>
+<!-- Only shown when the phone refuses to autoplay (e.g. iPhone Low Power Mode). -->
+<div id="tap" hidden>Toque na tela para ver o vídeo</div>
 
 <a-scene mindar-image="imageTargetSrc: targets.mind; uiScanning: no"
          color-space="sRGB" renderer="colorManagement: true"
          vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
-  <a-assets>
-    <!-- muted + playsinline: iPhones only autoplay inline video that is silent (this one has no audio) -->
-    <video id="vid" src="video.mp4" muted loop playsinline webkit-playsinline preload="auto" crossorigin="anonymous"></video>
-  </a-assets>
   <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
   <a-entity id="target" mindar-image-target="targetIndex: 0">
     <!-- The video is the whole cover animated (squeezed to 480x832), so it is stretched back over the
@@ -32,9 +38,20 @@
 <script>
   // MindAR hides the target (and the video on it) by itself when the cover leaves the view.
   const vid = document.getElementById("vid");
+  const tap = document.getElementById("tap");
   const target = document.getElementById("target");
-  target.addEventListener("targetFound", () => vid.play().catch(() => {}));
-  target.addEventListener("targetLost", () => vid.pause());
+  let onCover = false;
+  vid.muted = true;  // some iPhones only trust the property, not the attribute
+  target.addEventListener("targetFound", () => {
+    onCover = true;
+    vid.play().catch(() => { tap.hidden = false; });
+  });
+  target.addEventListener("targetLost", () => { onCover = false; vid.pause(); });
+  // A tap always counts as permission to play, so it unlocks the video when autoplay was refused.
+  document.addEventListener("pointerdown", () => {
+    tap.hidden = true;
+    vid.play().then(() => { if (!onCover) vid.pause(); }).catch(() => {});
+  });
 </script>
 </body>
 </html>
